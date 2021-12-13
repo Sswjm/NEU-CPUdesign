@@ -41,6 +41,8 @@ module mycpu_core(
     wire stallreq_for_ex;
     wire stall_en;
 
+    wire [3:0] load_judge;
+
     IF u_IF(
     	.clk             (clk             ),
         .rst             (rst             ),
@@ -83,6 +85,7 @@ module mycpu_core(
         .ex_to_id_bus    (ex_to_id_bus    ),
         .stallreq_for_ex (stallreq_for_ex ),
         .stall_en        (stall_en        )
+        //.load_judge      (load_judge      )
     );
 
     MEM u_MEM(
@@ -93,6 +96,7 @@ module mycpu_core(
         .data_sram_rdata (data_sram_rdata ),
         .mem_to_wb_bus   (mem_to_wb_bus   ),
         .mem_to_id_bus   (mem_to_id_bus   )
+        //.load_judge      (load_judge      )
     );
     
     WB u_WB(

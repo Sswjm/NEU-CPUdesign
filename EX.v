@@ -21,6 +21,8 @@ module EX(
     output wire stallreq_for_ex,
 
     output wire stall_en    //to id
+
+    //output wire [3:0] load_judge
 );
 
     reg [`ID_TO_EX_WD-1:0] id_to_ex_bus_r;
@@ -50,6 +52,10 @@ module EX(
     wire [4:0] rf_waddr;
     wire sel_rf_res;
     wire [31:0] rf_rdata1, rf_rdata2;
+    wire [31:0] hi_rdata, lo_rdata;
+    wire hi_we, lo_we;
+    wire [3:0] sel_move_dst;
+    wire [3:0] div_mul_select;
     reg is_in_delayslot;
 
     assign {
@@ -64,7 +70,13 @@ module EX(
         rf_waddr,       // 69:65
         sel_rf_res,     // 64
         rf_rdata1,         // 63:32
-        rf_rdata2          // 31:0
+        rf_rdata2,          // 31:0
+        hi_we,
+        lo_we,
+        hi_rdata,
+        lo_rdata,
+        sel_move_dst,     //move instructions control
+        div_mul_select    //divide and multiple instructions control
     } = id_to_ex_bus_r;
 
     wire [31:0] imm_sign_extend, imm_zero_extend, sa_zero_extend;
@@ -74,8 +86,15 @@ module EX(
 
     wire [31:0] alu_src1, alu_src2;
     wire [31:0] alu_result, ex_result;
+    wire [31:0] hi_wdata, lo_wdata;
 
+    //hilo part start
+    /*assign hi_wdata = sel_move_dst[0] ? rf_rdata1 : 32'b0;    //rs --> hi
+    assign lo_wdata = sel_move_dst[1] ? rf_rdata1 : 32'b0;    //rs --> lo*/
 
+    //hilo part end
+
+    //alu part
     assign alu_src1 = sel_alu_src1[1] ? ex_pc :
                       sel_alu_src1[2] ? sa_zero_extend : rf_rdata1;
 
@@ -90,22 +109,54 @@ module EX(
         .alu_result  (alu_result  )
     );
 
-    assign ex_result = alu_result;
+    assign ex_result = sel_move_dst[2] ? hi_rdata    //hi --> rd
+                    : sel_move_dst[3]  ? lo_rdata    //lo --> rd
+                    : alu_result;
+
+    //hilo part start
+    assign hi_wdata = sel_move_dst[0] ? rf_rdata1  //rs --> hi
+                    : (div_mul_select[0] | div_mul_select[1]) ? div_result[63:32]    //div
+                    : (div_mul_select[2] | div_mul_select[3]) ? mul_result[63:32]    //mul
+                    : hi_rdata;
+    assign lo_wdata = sel_move_dst[1] ? rf_rdata1  //rs --> lo
+                    : (div_mul_select[0] | div_mul_select[1]) ? div_result[31:0]    //div
+                    : (div_mul_select[2] | div_mul_select[3]) ? mul_result[31:0]
+                    : lo_rdata;    
+
+    //hilo part end
 
     //load and store instructions
-    assign stall_en = data_ram_en;   //tell "id" to stall if this instruction is a load or store
+    //assign load_judge = data_ram_wen;   // transfer to mem to judge which kind of load is
+
+    assign stall_en = data_ram_en 
+                    & (data_ram_wen == 4'b0 | data_ram_wen == 4'b0001 | data_ram_wen == 4'b0010 
+                        | data_ram_wen == 4'b0100 | data_ram_wen == 4'b0110);   
+                    //tell "id" to stall if this instruction is a load instruction
 
     assign data_sram_en = data_ram_en;
-    assign data_sram_wen = (data_ram_wen == 4'b0) ? 4'b0 : 4'b1;    //4'b0 lw;  4'b1 sw. This formula is easier to read.
+
+    assign data_sram_wen = (data_ram_wen == 4'b1101 & alu_result[1:0] == 2'b00) ? 4'b0011  //sh
+                    : (data_ram_wen == 4'b1101 & alu_result[1:0] == 2'b10) ? 4'b1100       //sh
+                    : (data_ram_wen == 4'b1110 & alu_result[1:0] == 2'b00) ? 4'b0001       //sb
+                    : (data_ram_wen == 4'b1110 & alu_result[1:0] == 2'b01) ? 4'b0010       //sb
+                    : (data_ram_wen == 4'b1110 & alu_result[1:0] == 2'b10) ? 4'b0100       //sb
+                    : (data_ram_wen == 4'b1110 & alu_result[1:0] == 2'b11) ? 4'b1000       //sb
+                    : (data_ram_wen == 4'b1111) ? 4'b1111                                  //sw
+                    : 4'b0;                                                                //loads
+
+
     assign data_sram_addr = alu_result;
-    assign data_sram_wdata = 32'b0;
+    //assign data_sram_wdata = (data_ram_wen == 4'b1111) ? rf_rdata2 : 32'b0;
+    assign data_sram_wdata = (data_ram_wen == 4'b1101 & alu_result[1:0] == 2'b00) ? {16'b0, rf_rdata2[15:0]}
+                    : (data_ram_wen == 4'b1101 & alu_result[1:0] == 2'b10) ? {rf_rdata2[15:0], 16'b0}
+                    : (data_ram_wen == 4'b1110 & alu_result[1:0] == 2'b00) ? {24'b0, rf_rdata2[7:0]}
+                    : (data_ram_wen == 4'b1110 & alu_result[1:0] == 2'b01) ? {16'b0,rf_rdata2[7:0], 8'b0}
+                    : (data_ram_wen == 4'b1110 & alu_result[1:0] == 2'b10) ? {8'b0, rf_rdata2[7:0], 16'b0}
+                    : (data_ram_wen == 4'b1110 & alu_result[1:0] == 2'b11) ? {rf_rdata2[7:0], 24'b0}
+                    : (data_ram_wen == 4'b1111) ? rf_rdata2
+                    : 32'b0;
 
-    //
-
-    //stall part start
-    assign stallreq_for_ex = `NoStop;
-
-    //stall part end
+    //load and store instructions end
 
     assign ex_to_mem_bus = {
         ex_pc,          // 75:44
@@ -114,7 +165,12 @@ module EX(
         sel_rf_res,     // 38
         rf_we,          // 37
         rf_waddr,       // 36:32
-        ex_result       // 31:0
+        ex_result,      // 31:0
+        hi_we,
+        lo_we,
+        hi_wdata,
+        lo_wdata,
+        data_ram_wen
     };
 
     assign ex_to_id_bus = {
@@ -124,33 +180,80 @@ module EX(
         sel_rf_res,     // 38
         rf_we,          // 37
         rf_waddr,       // 36:32
-        ex_result       // 31:0
+        ex_result,       // 31:0
+        hi_we,
+        lo_we,
+        hi_wdata,
+        lo_wdata,
+        data_ram_wen
     };
 
     // MUL part
     wire [63:0] mul_result;
+    wire inst_mult, inst_multu;
     wire mul_signed; // 有符号乘法标记
+    reg stallreq_for_mul;
+
+    assign mul_signed = div_mul_select[2];   //inst_mult
+    assign inst_mult = div_mul_select[2];
+    assign inst_multu = div_mul_select[3];
 
     mul u_mul(
     	.clk        (clk            ),
         .resetn     (~rst           ),
         .mul_signed (mul_signed     ),
-        .ina        (      ), // 乘法源操作数1
-        .inb        (      ), // 乘法源操作数2
-        .result     (mul_result     ) // 乘法结果 64bit
+        .ina        (rf_rdata1      ), // 乘法源操作数1
+        .inb        (rf_rdata2      ), // 乘法源操作数2
+        .result     (mul_result     )  // 乘法结果 64bit
     );
+    
+    reg cnt;
+    reg next_cnt;
+    
+    always @ (posedge clk) begin
+        if (rst) begin
+           cnt <= 1'b0; 
+        end
+        else begin
+           cnt <= next_cnt; 
+        end
+    end
+
+    always @ (*) begin
+        if (rst) begin
+            stallreq_for_mul <= 1'b0;
+            next_cnt <= 1'b0;
+        end
+        else if((inst_mult|inst_multu)&~cnt) begin
+            stallreq_for_mul <= 1'b1;
+            next_cnt <= 1'b1;
+        end
+        else if((inst_mult|inst_multu)&cnt) begin
+            stallreq_for_mul <= 1'b0;
+            next_cnt <= 1'b0;
+        end
+        else begin
+           stallreq_for_mul <= 1'b0;
+           next_cnt <= 1'b0; 
+        end
+    end
 
     // DIV part
     wire [63:0] div_result;
     wire inst_div, inst_divu;
     wire div_ready_i;
     reg stallreq_for_div;
+
+    assign inst_div = div_mul_select[0];
+    assign inst_divu = div_mul_select[1];
+
     assign stallreq_for_ex = stallreq_for_div;
 
     reg [31:0] div_opdata1_o;
     reg [31:0] div_opdata2_o;
     reg div_start_o;
     reg signed_div_o;
+
 
     div u_div(
     	.rst          (rst          ),
@@ -232,6 +335,8 @@ module EX(
     end
 
     // mul_result 和 div_result 可以直接使用
+
+    
     
     
 endmodule

@@ -39,25 +39,39 @@ module WB(
     wire rf_we;
     wire [4:0] rf_waddr;
     wire [31:0] rf_wdata;
+    wire hi_we, lo_we;
+    wire [31:0] hi_wdata, lo_wdata;
 
     assign {
         wb_pc,
         rf_we,
         rf_waddr,
-        rf_wdata
+        rf_wdata,
+        hi_we,
+        lo_we,
+        hi_wdata,
+        lo_wdata
     } = mem_to_wb_bus_r;
 
     // assign wb_to_rf_bus = mem_to_wb_bus_r[`WB_TO_RF_WD-1:0];
     assign wb_to_rf_bus = {
         rf_we,
         rf_waddr,
-        rf_wdata
+        rf_wdata,
+        hi_we,
+        lo_we,
+        hi_wdata,
+        lo_wdata
     };
 
     assign wb_to_id_bus = {
         rf_we,
         rf_waddr,
-        rf_wdata
+        rf_wdata,
+        hi_we,
+        lo_we,
+        hi_wdata,
+        lo_wdata
     };
 
     assign debug_wb_pc = wb_pc;
