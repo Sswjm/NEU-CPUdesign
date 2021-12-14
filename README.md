@@ -1,8 +1,7 @@
 # NEU-CPUdesign
-这是东北大学2021年秋季计算机体系结构课程的实验代码仓库，课程仓库位于https://github.com/fluctlight001/SampleCPU
-# 小组成员
-穆奕博、高天、朱梓铭
-# 工作安排
+本实验为东北大学2021年秋季计算机系统课程的实验代码仓库，课程仓库位于https://github.com/fluctlight001/SampleCPU
+实验实现了一个具有51条MIPS指令的cpu
+# 工作进展
 11.28 完成数据相关接线
 
 12.3 更新至lw指令，完成流水线暂停相关操作
