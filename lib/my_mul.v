@@ -75,7 +75,7 @@ module mymul(
                             product_temp <= {`ZeroWord, `ZeroWord};
                         end
                     end else begin
-                        ready_o <= `DivResultNotReady;
+                        ready_o <= `MulResultNotReady;
                         result_o <= {`ZeroWord, `ZeroWord}
                     end
                 end
