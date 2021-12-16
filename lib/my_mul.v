@@ -53,7 +53,7 @@ module mymul(
             result_o <= {`ZeroWord, `ZeroWord}
         end else begin
             case (state)
-                `DivFree: begin
+                `MulFree: begin
                     if (start_i == `MulStart && annul_i == 1'b0) begin
                         if (opdata1_i == `ZeroWord || opdata2_i == `ZeroWord) begin
                             state <= `MulByZero;
