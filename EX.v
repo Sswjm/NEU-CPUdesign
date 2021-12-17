@@ -189,9 +189,9 @@ module EX(
     };
 
     // MUL part
-    wire [63:0] mul_result;
+    /*wire [63:0] mul_result;
     wire inst_mult, inst_multu;
-    wire mul_signed; // 有符号乘法标记
+    wire mul_signed; // 有符号乘法标�?
     reg stallreq_for_mul;
 
     assign mul_signed = div_mul_select[2];   //inst_mult
@@ -205,9 +205,101 @@ module EX(
         .ina        (rf_rdata1      ), // 乘法源操作数1
         .inb        (rf_rdata2      ), // 乘法源操作数2
         .result     (mul_result     )  // 乘法结果 64bit
-    );
+    );*/
     
-    reg cnt;
+    wire [63:0] mul_result;
+    wire inst_mult, inst_multu;
+    wire mul_ready_i;
+    reg stallreq_for_mul;
+
+    assign inst_mult = div_mul_select[2];
+    assign inst_multu = div_mul_select[3];
+
+
+    reg [31:0] mul_opdata1_o;
+    reg [31:0] mul_opdata2_o;
+    reg mul_start_o;
+    reg signed_mul_o;
+
+    mymul u_mul(
+        .rst          (rst          ),
+        .clk          (clk          ),
+        .signed_mul_i (signed_mul_o ),
+        .opdata1_i    (mul_opdata1_o    ),
+        .opdata2_i    (mul_opdata2_o    ),
+        .start_i      (mul_start_o      ),
+        .annul_i      (1'b0      ),
+        .result_o     (mul_result     ), // 除法结果 64bit
+        .ready_o      (mul_ready_i      )
+    );
+
+    always @ (*) begin
+        if (rst) begin
+            stallreq_for_mul = `NoStop;
+            mul_opdata1_o = `ZeroWord;
+            mul_opdata2_o = `ZeroWord;
+            mul_start_o = `MulStop;
+            signed_mul_o = 1'b0;
+        end
+        else begin
+            stallreq_for_mul = `NoStop;
+            mul_opdata1_o = `ZeroWord;
+            mul_opdata2_o = `ZeroWord;
+            mul_start_o = `MulStop;
+            signed_mul_o = 1'b0;
+            case ({inst_mult,inst_multu})
+                2'b10:begin
+                    if (mul_ready_i == `MulResultNotReady) begin
+                        mul_opdata1_o = rf_rdata1;
+                        mul_opdata2_o = rf_rdata2;
+                        mul_start_o = `MulStart;
+                        signed_mul_o = 1'b1;
+                        stallreq_for_mul = `Stop;
+                    end
+                    else if (mul_ready_i == `MulResultReady) begin
+                        mul_opdata1_o = rf_rdata1;
+                        mul_opdata2_o = rf_rdata2;
+                        mul_start_o = `MulStop;
+                        signed_mul_o = 1'b1;
+                        stallreq_for_mul = `NoStop;
+                    end
+                    else begin
+                        mul_opdata1_o = `ZeroWord;
+                        mul_opdata2_o = `ZeroWord;
+                        mul_start_o = `MulStop;
+                        signed_mul_o = 1'b0;
+                        stallreq_for_mul = `NoStop;
+                    end
+                end
+                2'b01:begin
+                    if (mul_ready_i == `MulResultNotReady) begin
+                        mul_opdata1_o = rf_rdata1;
+                        mul_opdata2_o = rf_rdata2;
+                        mul_start_o = `MulStart;
+                        signed_mul_o = 1'b0;
+                        stallreq_for_mul = `Stop;
+                    end
+                    else if (mul_ready_i == `MulResultReady) begin
+                        mul_opdata1_o = rf_rdata1;
+                        mul_opdata2_o = rf_rdata2;
+                        mul_start_o = `MulStop;
+                        signed_mul_o = 1'b0;
+                        stallreq_for_mul = `NoStop;
+                    end
+                    else begin
+                        mul_opdata1_o = `ZeroWord;
+                        mul_opdata2_o = `ZeroWord;
+                        mul_start_o = `MulStop;
+                        signed_mul_o = 1'b0;
+                        stallreq_for_mul = `NoStop;
+                    end
+                end
+                default:begin
+                end
+            endcase
+        end
+    end
+    /*reg cnt;
     reg next_cnt;
     
     always @ (posedge clk) begin
@@ -236,7 +328,7 @@ module EX(
            stallreq_for_mul <= 1'b0;
            next_cnt <= 1'b0; 
         end
-    end
+    end*/
 
     // DIV part
     wire [63:0] div_result;
@@ -247,7 +339,7 @@ module EX(
     assign inst_div = div_mul_select[0];
     assign inst_divu = div_mul_select[1];
 
-    assign stallreq_for_ex = stallreq_for_div;
+    assign stallreq_for_ex = stallreq_for_div | stallreq_for_mul;
 
     reg [31:0] div_opdata1_o;
     reg [31:0] div_opdata2_o;
@@ -334,7 +426,7 @@ module EX(
         end
     end
 
-    // mul_result 和 div_result 可以直接使用
+    // mul_result �? div_result 可以直接使用
 
     
     
