@@ -191,7 +191,7 @@ module EX(
     // MUL part
     /*wire [63:0] mul_result;
     wire inst_mult, inst_multu;
-    wire mul_signed; // 有符号乘法标�?
+    wire mul_signed; // 有符号乘法标�?
     reg stallreq_for_mul;
 
     assign mul_signed = div_mul_select[2];   //inst_mult
@@ -299,36 +299,7 @@ module EX(
             endcase
         end
     end
-    /*reg cnt;
-    reg next_cnt;
-    
-    always @ (posedge clk) begin
-        if (rst) begin
-           cnt <= 1'b0; 
-        end
-        else begin
-           cnt <= next_cnt; 
-        end
-    end
 
-    always @ (*) begin
-        if (rst) begin
-            stallreq_for_mul <= 1'b0;
-            next_cnt <= 1'b0;
-        end
-        else if((inst_mult|inst_multu)&~cnt) begin
-            stallreq_for_mul <= 1'b1;
-            next_cnt <= 1'b1;
-        end
-        else if((inst_mult|inst_multu)&cnt) begin
-            stallreq_for_mul <= 1'b0;
-            next_cnt <= 1'b0;
-        end
-        else begin
-           stallreq_for_mul <= 1'b0;
-           next_cnt <= 1'b0; 
-        end
-    end*/
 
     // DIV part
     wire [63:0] div_result;
@@ -426,7 +397,7 @@ module EX(
         end
     end
 
-    // mul_result �? div_result 可以直接使用
+    // mul_result �? div_result 可以直接使用
 
     
     
