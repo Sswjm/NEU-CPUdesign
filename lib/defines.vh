@@ -1,6 +1,6 @@
 `define IF_TO_ID_WD 33
 //`define ID_TO_EX_WD 159
-`define ID_TO_EX_WD 233    //add hi lo  
+`define ID_TO_EX_WD 236    //add hi lo  lsa
 //`define EX_TO_MEM_WD 76
 `define EX_TO_MEM_WD 146  //add hi lo,load_judge
 //`define MEM_TO_WB_WD 70

@@ -11,7 +11,7 @@ module mymul(
 	output reg[63:0] result_o,				//乘法运算结果
 	output reg ready_o						//乘法运算是否结束
 );
-    // three states, mul_free, mul_on, mul_end�? mul_by_zero
+    // four states, mul_free, mul_on, mul_end, mul_by_zero
     reg [31:0] temp_op1;
     reg [31:0] temp_op2;
     reg [63:0] multiplicand;   //被乘数 每次运算左移1位

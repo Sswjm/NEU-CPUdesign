@@ -158,7 +158,7 @@ module ID(
     wire inst_div, inst_divu, inst_mult;
     wire inst_multu, inst_lb, inst_lbu;
     wire inst_lh, inst_lhu, inst_sb;
-    wire inst_sh;
+    wire inst_sh, inst_lsa;
     // end
 
     wire op_add, op_sub, op_slt, op_sltu;
@@ -238,6 +238,7 @@ module ID(
     assign inst_lhu     = op_d[6'b10_0101];
     assign inst_sb      = op_d[6'b10_1000];
     assign inst_sh      = op_d[6'b10_1001];
+    assign inst_lsa     = op_d[6'b01_1100] & func_d[6'b11_0111];
 
     // rs to reg1
     assign sel_alu_src1[0] = inst_ori   | inst_addiu | inst_subu  | inst_addu 
@@ -318,7 +319,8 @@ module ID(
                     | inst_or   | inst_lw   | inst_xor   | inst_sltu | inst_slt  | inst_slti   | inst_sltiu
                     | inst_add  | inst_addi | inst_sub   | inst_and  | inst_andi | inst_nor    | inst_xori
                     | inst_sllv | inst_sra  | inst_srav  | inst_srl  | inst_srlv | inst_bltzal | inst_bgezal
-                    | inst_jalr | inst_mflo | inst_mfhi  | inst_lb   | inst_lbu  | inst_lh     | inst_lhu;
+                    | inst_jalr | inst_mflo | inst_mfhi  | inst_lb   | inst_lbu  | inst_lh     | inst_lhu
+                    | inst_lsa;
 
 
 
@@ -326,7 +328,7 @@ module ID(
     assign sel_rf_dst[0] = inst_subu   | inst_addu | inst_sll | inst_or   | inst_xor  | inst_sltu 
                             | inst_slt | inst_add  | inst_sub | inst_and  | inst_nor  | inst_sllv
                             | inst_sra | inst_srav | inst_srl | inst_srlv | inst_jalr | inst_mflo
-                            | inst_mfhi;
+                            | inst_mfhi | inst_lsa;
     // store in [rt] 
     assign sel_rf_dst[1] = inst_ori | inst_lui | inst_addiu | inst_lw | inst_slti | inst_sltiu 
                             | inst_addi | inst_andi | inst_xori | inst_lb | inst_lbu | inst_lh
@@ -379,6 +381,16 @@ module ID(
 
 
     //filo reg part end
+
+    // lsa instruction part
+    wire is_lsa;
+    assign is_lsa = inst_lsa;
+
+    wire [1:0] lsa_sa;
+    assign lsa_sa = inst[7:6];   //2 bits' sa
+
+
+    // lsa end
 
     //data correlation start
     // we just use six of these variables, maybe after we will use the others
@@ -472,7 +484,9 @@ module ID(
         selected_hi_rdata,
         selected_lo_rdata,
         sel_move_dst,
-        div_mul_select
+        div_mul_select,
+        is_lsa,
+        lsa_sa
     };
 
     //stall part start

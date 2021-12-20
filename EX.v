@@ -57,6 +57,8 @@ module EX(
     wire [3:0] sel_move_dst;
     wire [3:0] div_mul_select;
     reg is_in_delayslot;
+    wire is_lsa;
+    wire [1:0] lsa_sa;
 
     assign {
         ex_pc,          // 148:117
@@ -76,7 +78,9 @@ module EX(
         hi_rdata,
         lo_rdata,
         sel_move_dst,     //move instructions control
-        div_mul_select    //divide and multiple instructions control
+        div_mul_select,    //divide and multiple instructions control
+        is_lsa,
+        lsa_sa
     } = id_to_ex_bus_r;
 
     wire [31:0] imm_sign_extend, imm_zero_extend, sa_zero_extend;
@@ -87,6 +91,7 @@ module EX(
     wire [31:0] alu_src1, alu_src2;
     wire [31:0] alu_result, ex_result;
     wire [31:0] hi_wdata, lo_wdata;
+    wire [31:0] lsa_result;
 
     //hilo part start
     /*assign hi_wdata = sel_move_dst[0] ? rf_rdata1 : 32'b0;    //rs --> hi
@@ -111,6 +116,7 @@ module EX(
 
     assign ex_result = sel_move_dst[2] ? hi_rdata    //hi --> rd
                     : sel_move_dst[3]  ? lo_rdata    //lo --> rd
+                    : is_lsa ? lsa_result
                     : alu_result;
 
     //hilo part start
@@ -158,6 +164,12 @@ module EX(
 
     //load and store instructions end
 
+    // lsa part start
+    assign lsa_result = (rf_rdata1 << (lsa_sa + 3'b001)) + rf_rdata2;
+    
+
+    // lsa part end
+
     assign ex_to_mem_bus = {
         ex_pc,          // 75:44
         data_ram_en,    // 43
@@ -191,7 +203,7 @@ module EX(
     // MUL part
     /*wire [63:0] mul_result;
     wire inst_mult, inst_multu;
-    wire mul_signed; // 有符号乘法标�?
+    wire mul_signed; // 有符号乘法标�??
     reg stallreq_for_mul;
 
     assign mul_signed = div_mul_select[2];   //inst_mult
@@ -299,7 +311,36 @@ module EX(
             endcase
         end
     end
+    /*reg cnt;
+    reg next_cnt;
+    
+    always @ (posedge clk) begin
+        if (rst) begin
+           cnt <= 1'b0; 
+        end
+        else begin
+           cnt <= next_cnt; 
+        end
+    end
 
+    always @ (*) begin
+        if (rst) begin
+            stallreq_for_mul <= 1'b0;
+            next_cnt <= 1'b0;
+        end
+        else if((inst_mult|inst_multu)&~cnt) begin
+            stallreq_for_mul <= 1'b1;
+            next_cnt <= 1'b1;
+        end
+        else if((inst_mult|inst_multu)&cnt) begin
+            stallreq_for_mul <= 1'b0;
+            next_cnt <= 1'b0;
+        end
+        else begin
+           stallreq_for_mul <= 1'b0;
+           next_cnt <= 1'b0; 
+        end
+    end*/
 
     // DIV part
     wire [63:0] div_result;
@@ -397,7 +438,7 @@ module EX(
         end
     end
 
-    // mul_result �? div_result 可以直接使用
+    // mul_result �?? div_result 可以直接使用
 
     
     
