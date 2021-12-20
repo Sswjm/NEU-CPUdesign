@@ -311,36 +311,6 @@ module EX(
             endcase
         end
     end
-    /*reg cnt;
-    reg next_cnt;
-    
-    always @ (posedge clk) begin
-        if (rst) begin
-           cnt <= 1'b0; 
-        end
-        else begin
-           cnt <= next_cnt; 
-        end
-    end
-
-    always @ (*) begin
-        if (rst) begin
-            stallreq_for_mul <= 1'b0;
-            next_cnt <= 1'b0;
-        end
-        else if((inst_mult|inst_multu)&~cnt) begin
-            stallreq_for_mul <= 1'b1;
-            next_cnt <= 1'b1;
-        end
-        else if((inst_mult|inst_multu)&cnt) begin
-            stallreq_for_mul <= 1'b0;
-            next_cnt <= 1'b0;
-        end
-        else begin
-           stallreq_for_mul <= 1'b0;
-           next_cnt <= 1'b0; 
-        end
-    end*/
 
     // DIV part
     wire [63:0] div_result;
